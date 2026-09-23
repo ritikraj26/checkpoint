@@ -2,7 +2,7 @@
   "name": "checkpoint",
   "displayName": "Checkpoint",
   "description": "Persistent engineering context for reliable project resume",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "checkpoint-local",
   "license": "UNLICENSED",
   "engines": {
@@ -37,6 +37,11 @@
       {
         "command": "checkpoint.save",
         "title": "Save",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.selectChat",
+        "title": "Select Chat",
         "category": "Checkpoint"
       },
       {

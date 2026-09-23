@@ -2,6 +2,14 @@
 
 All notable changes to Checkpoint are documented in this file.
 
+## [0.5.0] - 2026-09-23
+
+- Added a project-scoped Codex chat picker to **Checkpoint: Save** and a separate **Checkpoint: Select Chat** command.
+- Added bounded `CHAT_CONTEXT.md` snapshots containing visible user and assistant messages from the selected local session.
+- Excluded system/developer messages, injected environment context, hidden reasoning, tool calls, and tool output from chat capture.
+- Added the chat transcript digest to checkpoint deduplication and carried the nearest saved chat context across later automatic checkpoints.
+- Resume now attaches both the checkpoint handoff and selected prior-chat context to a fresh Codex conversation.
+
 ## [0.4.0] - 2026-09-23
 
 - Changed **Checkpoint: Save** into an immediate, no-form snapshot of the current Git, editor, terminal, resource, and important-file state.

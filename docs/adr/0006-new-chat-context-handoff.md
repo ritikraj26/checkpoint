@@ -13,7 +13,7 @@ The installed Codex VS Code extension contributes commands to open a new chat an
 
 Generate `CODEX_HANDOFF.md` beside every portable checkpoint. It contains an evidence-bound continuation instruction followed by the deterministic resume document. From the resume panel, an explicit **Continue in new Codex chat** action opens a fresh Codex composer and attaches this file through the Codex extension's contributed commands. Checkpoint verifies command availability at runtime and fails without data loss if the integration changes.
 
-Checkpoint does not inspect the old conversation, silently initiate a handoff, or submit the new message. The user reviews the attached context and presses Send. If Codex is unavailable, the resume view and workspace restoration continue to work without it.
+Checkpoint does not silently initiate a handoff or submit the new message. Under ADR 0008, an explicitly selected, filtered local chat transcript may also be attached. The user reviews the attachments and presses Send. If Codex is unavailable, the resume view and workspace restoration continue to work without it.
 
 ## Consequences
 

@@ -44,6 +44,7 @@ export function renderCodexHandoffMarkdown(project: Project, checkpoint: Checkpo
 		'- Never invent missing goals, decisions, progress, blockers, or results.',
 		'- If a next action is recorded, start there after verification. Otherwise, explain what information is missing and propose the smallest useful next step.',
 		'- Do not search for or depend on the previous chat transcript.',
+		'- If `CHAT_CONTEXT.md` is attached, treat it as the selected prior conversation and use it together with the checkpoint evidence.',
 		'',
 		'---',
 		'',

@@ -12,6 +12,7 @@ This is the smallest process model that can observe the editor and Git, survive 
 src/domain/             Models, validation, deduplication, redaction
 src/application/        Save, list, resume, resource, diagnostics use cases
 src/infrastructure/git/ Git command adapter
+src/infrastructure/codex/ Explicit local Codex chat discovery and filtering
 src/infrastructure/sqlite/ Migrations and repositories
 src/infrastructure/export/ Portable checkpoint writer
 src/vscode/             Collectors, commands, inputs, resume UI
@@ -39,15 +40,15 @@ Derived now: `GitState`, `WorkspaceState`, and the compact `ResumeContext`. Even
 3. Observe text edits/saves, active-editor changes, terminal command completion, resource additions, and workspace changes. Restart one idle timer on each meaningful activity signal; do not poll Git.
 4. After the configured idle interval, collect Git state, active/open files, terminal cwd, and opted-in recent commands through the same capture path used by manual saves.
 5. Carry forward previously known semantic context, replace deterministic important-file evidence, and save an immutable `auto` checkpoint transactionally. Fingerprints deduplicate equivalent evidence regardless of checkpoint identity, time, type, reason, or collection order.
-6. Manual Save creates an immediate facts snapshot without prompting. The separate Update Context command records or corrects semantic context; automatic capture never fabricates it.
-7. Render resume state and write `metadata.json`, `context.json`, `RESUME.md`, and `CODEX_HANDOFF.md` as a portable export.
-8. On explicit request, open a fresh Codex chat and attach `CODEX_HANDOFF.md`. Checkpoint does not read old conversations or submit the new message.
+6. Manual Save captures facts and, after an explicit project-level selection, filters visible user/assistant messages from the chosen local Codex session into `CHAT_CONTEXT.md`. A transcript digest participates in deduplication. The separate Update Context command records or corrects semantic context; automatic capture never fabricates it.
+7. Render resume state and write `metadata.json`, `context.json`, `RESUME.md`, `CODEX_HANDOFF.md`, and the optional `CHAT_CONTEXT.md` as a portable export.
+8. On explicit request, open a fresh Codex chat and attach `CODEX_HANDOFF.md` plus the nearest saved chat context. Checkpoint does not submit the new message.
 
 `AutoCheckpointScheduler` belongs to the VS Code-independent application layer. It owns debouncing, live configuration, save serialization, follow-up work after activity during a save, disposal, and diagnostic state. The controller translates editor events into activity and supplies the capture/save callback. Correctness never depends on extension shutdown.
 
 ## Highest-risk assumptions
 
-1. **Resume value:** deterministic facts plus concise manual context are useful without AI. Measure through daily use before provider work.
+1. **Resume value:** deterministic facts, selected visible chat context, and concise manual context are sufficient for a useful new conversation without reopening the old thread.
 2. **Capture quality:** terminal shell integration is not universal. Command capture is opt-in, redacted, bounded, and never required.
 3. **Storage runtime:** built-in `node:sqlite` requires the Node runtime bundled with VS Code 1.105+. Packaging and extension-host integration tests guard this.
 4. **Checkpoint noise:** activity is debounced until 10 minutes of inactivity, and deterministic fingerprints prevent equivalent snapshots from creating history.

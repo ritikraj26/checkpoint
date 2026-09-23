@@ -27,6 +27,7 @@ export interface ContextInput {
 	experiments?: string[];
 	discoveries?: string[];
 	importantFiles?: string[];
+	chatReference?: string;
 }
 
 export interface CheckpointExporter {
@@ -145,6 +146,13 @@ export function mergeContextItems(
 				known.add(content);
 			}
 		}
+	}
+
+	const existingNotes = active.filter((item) => item.kind === 'note');
+	if (input.chatReference === undefined) {
+		merged.push(...existingNotes);
+	} else if (input.chatReference.trim()) {
+		merged.push(newItem('note', input.chatReference, 'deterministic', projectId, createdAt, createId));
 	}
 
 	return merged;

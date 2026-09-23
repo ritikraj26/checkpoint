@@ -9,7 +9,7 @@ Checkpoint is a local-first VS Code extension that captures repository and edito
 1. Open a workspace folder.
 2. Checkpoint immediately creates a facts-only baseline if this project has no history.
 3. Work normally. After a text edit/save, active-editor change, completed terminal command, added resource, or workspace change, Checkpoint silently saves once the workspace has been idle for 10 minutes.
-4. Run **Checkpoint: Save** whenever you want an immediate snapshot. It captures the current state without opening a form.
+4. Run **Checkpoint: Save** whenever you want an immediate snapshot. The first time, select a recent Codex chat for this workspace or choose workspace-only. Later saves refresh the selected chat automatically.
 5. Optionally run **Checkpoint: Update Context** when you want to record or correct the objective, task, progress, decisions, experiments, discoveries, blocker, or next action.
 6. Later, run **Checkpoint: Resume** or **Checkpoint: History**. Review the captured context, then select **Continue in new Codex chat**. Checkpoint opens a fresh chat and attaches a generated handoff; press Send to let Codex continue from it. Use **Restore workspace files** when you only want to reopen the captured editors.
 
@@ -24,10 +24,11 @@ Automatic checkpoints carry known semantic context forward and refresh determini
 - Active and open text files
 - Terminal working directories where shell integration exposes them
 - Optional recent terminal commands, bounded and redacted
+- Visible user and assistant messages from an explicitly selected local Codex chat
 - Manually seeded objective, task, progress, decisions, experiments, discoveries, blocker, and next action, carried forward by automatic checkpoints
 - Explicitly added URLs and local resources
 
-Checkpoint never captures file contents, Git diff contents, terminal output, environment variables, or known credential files. Terminal command capture is off by default. Continuing in Codex is an explicit action; Checkpoint never silently sends saved context to an AI service.
+Checkpoint never directly captures source-file contents, Git diff contents, terminal output, environment variables, system/developer chat instructions, hidden reasoning, tool calls, tool output, or known credential files. A selected visible chat message can itself contain pasted code or sensitive information, so review chat content before selecting it. Terminal command capture is off by default. Continuing in Codex is an explicit action; Checkpoint never silently sends saved context to an AI service.
 
 ## Install locally
 
@@ -37,16 +38,17 @@ Requirements: VS Code 1.105 or newer. Development and packaging require Node.js 
 npm ci
 npm test
 npm run package
-npx @vscode/vsce package --out checkpoint-0.4.0.vsix
+npx @vscode/vsce package --out checkpoint-0.5.0.vsix
 ```
 
-In VS Code, open the Extensions view, choose the **...** menu, select **Install from VSIX...**, and select `checkpoint-0.4.0.vsix`.
+In VS Code, open the Extensions view, choose the **...** menu, select **Install from VSIX...**, and select `checkpoint-0.5.0.vsix`.
 
 For development, run `npm run compile`, then use the **Run Extension** launch configuration.
 
 ## Commands
 
-- **Checkpoint: Save**: immediately capture the current state without a form
+- **Checkpoint: Save**: capture the current state and refresh the project’s selected Codex chat
+- **Checkpoint: Select Chat**: select or change the local Codex chat associated with this project
 - **Checkpoint: Update Context**: optionally record or correct semantic context while capturing current state
 - **Checkpoint: Resume**: select a project/checkpoint, then restore its files or prepare a new Codex chat from its handoff
 - **Checkpoint: History**: inspect prior checkpoints
@@ -72,9 +74,12 @@ metadata.json
 context.json
 RESUME.md
 CODEX_HANDOFF.md
+CHAT_CONTEXT.md (when a chat was selected)
 ```
 
-`CODEX_HANDOFF.md` contains instructions for a new conversation plus the same saved evidence as `RESUME.md`. Checkpoint uses the Codex extension's contributed `chatgpt.newChat` and `chatgpt.addFileToThread` commands to attach it. These commands are discoverable in the installed extension but are not a documented cross-extension API, so Checkpoint checks for them at runtime and fails safely if they change. Codex does not expose a supported command for Checkpoint to submit the message, so you review the attachment and press Send yourself.
+`CHAT_CONTEXT.md` is a bounded, filtered transcript from the explicitly selected local Codex session. It contains only visible user and assistant text. Checkpoint reads Codex's local session index because Codex does not expose a documented chat-list/export API; compatibility is therefore checked at runtime and may need adjustment after a Codex storage-format change.
+
+`CODEX_HANDOFF.md` contains instructions for a new conversation plus the same saved evidence as `RESUME.md`. Checkpoint uses the Codex extension's contributed `chatgpt.newChat` and `chatgpt.addFileToThread` commands to attach it together with the nearest saved chat context. These commands are discoverable in the installed extension but are not a documented cross-extension API, so Checkpoint checks for them at runtime and fails safely if they change. Codex does not expose a supported command for Checkpoint to submit the message, so you review the attachments and press Send yourself.
 
 Use **Checkpoint: Diagnostics** to see the exact database path. Use **Checkpoint: Back Up Data** before upgrades or machine migration.
 
@@ -93,6 +98,7 @@ To remove one project's context, run **Checkpoint: Delete Project Data**. To rem
 - Terminal cwd and commands require VS Code shell integration and may be unavailable for some shells or remote sessions.
 - A missing or deleted file is skipped during resume and does not prevent other files from reopening.
 - If **Continue in new Codex chat** reports that Codex is unavailable, install or enable the OpenAI Codex extension and reload VS Code.
+- If a chat is missing from the picker, confirm it belongs to the current workspace and has been written to Codex's local session history. Use **Checkpoint: Select Chat** to retry or choose workspace-only.
 - Checkpoint creation succeeds even if the portable export fails; a warning identifies that partial failure.
 
 Architecture and decisions are documented in `docs/architecture.md` and `docs/adr/`.

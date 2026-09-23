@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CheckpointManager } from './application/checkpointManager';
 import { PortableCheckpointExporter } from './infrastructure/export/portableCheckpointExporter';
+import { CodexChatReader } from './infrastructure/codex/codexChatReader';
 import { GitStateCollector } from './infrastructure/git/gitStateCollector';
 import { SqliteCheckpointStore } from './infrastructure/sqlite/sqliteCheckpointStore';
 import { CheckpointController } from './vscode/checkpointController';
@@ -24,6 +25,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			new GitStateCollector(),
 			new WorkspaceStateCollector(tracker),
 			tracker,
+			new CodexChatReader(),
 			exportRoot,
 			logger,
 		);

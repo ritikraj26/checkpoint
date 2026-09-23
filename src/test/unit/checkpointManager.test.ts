@@ -61,6 +61,15 @@ suite('context merging', () => {
 
 		assert.equal(merged.find((entry) => entry.kind === 'important_file')?.content, 'src/known.ts');
 	});
+
+	test('uses a chat snapshot digest as deterministic checkpoint evidence', () => {
+		const previous = [item('note', 'codex-chat:chat-1:old-digest', 'chat-note', 'deterministic')];
+		const preserved = mergeContextItems(previous, {}, 'project', '2026-09-14T11:00:00.000Z', ids());
+		assert.equal(preserved.find((candidate) => candidate.kind === 'note')?.content, 'codex-chat:chat-1:old-digest');
+
+		const replaced = mergeContextItems(previous, { chatReference: 'codex-chat:chat-1:new-digest' }, 'project', '2026-09-14T11:00:00.000Z', ids());
+		assert.equal(replaced.find((candidate) => candidate.kind === 'note')?.content, 'codex-chat:chat-1:new-digest');
+	});
 });
 
 function item(

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { AutoCheckpointScheduler } from '../application/autoCheckpointScheduler';
@@ -8,6 +8,7 @@ import { CheckpointStore, CheckpointSummary } from '../application/checkpointSto
 import { renderCodexHandoffMarkdown } from '../application/resumeRenderer';
 import { Checkpoint, Project, Resource, Session } from '../domain/models';
 import { isSensitivePath } from '../domain/redaction';
+import { chatDisplayDescription, CodexChat, CodexChatReader, CodexChatSnapshot } from '../infrastructure/codex/codexChatReader';
 import { GitStateCollector } from '../infrastructure/git/gitStateCollector';
 import { collectContextInput } from './contextForm';
 import { Logger } from './logger';
@@ -16,6 +17,7 @@ import { TerminalCommandTracker } from './terminalCommandTracker';
 import { WorkspaceStateCollector } from './workspaceStateCollector';
 
 const pendingResumeKey = 'checkpoint.pendingResume';
+const selectedChatKeyPrefix = 'checkpoint.selectedCodexChat.';
 
 export class CheckpointController implements vscode.Disposable {
 	private project?: Project;
@@ -31,6 +33,7 @@ export class CheckpointController implements vscode.Disposable {
 		private readonly git: GitStateCollector,
 		private readonly workspace: WorkspaceStateCollector,
 		private readonly terminalCommands: TerminalCommandTracker,
+		private readonly codexChats: CodexChatReader,
 		private readonly exportRoot: string,
 		private readonly logger: Logger,
 	) {
@@ -69,6 +72,7 @@ export class CheckpointController implements vscode.Disposable {
 
 	private registerCommands(): void {
 		this.register('checkpoint.save', () => this.save());
+		this.register('checkpoint.selectChat', () => this.selectChat());
 		this.register('checkpoint.updateContext', () => this.updateContext());
 		this.register('checkpoint.resume', () => this.resume());
 		this.register('checkpoint.history', () => this.history());
@@ -156,7 +160,18 @@ export class CheckpointController implements vscode.Disposable {
 
 	private async save(): Promise<void> {
 		const { project, session, folder } = this.requireWorkspace();
-		await this.saveManualCheckpoint(project, session, folder, {}, 'Manual checkpoint');
+		const chat = await this.chatForSave(project, folder);
+		if (!chat) {
+			return;
+		}
+		await this.saveManualCheckpoint(
+			project,
+			session,
+			folder,
+			{ chatReference: chat.snapshot ? chatReference(chat.snapshot) : '' },
+			'Manual checkpoint',
+			chat.snapshot,
+		);
 	}
 
 	private async updateContext(): Promise<void> {
@@ -166,7 +181,13 @@ export class CheckpointController implements vscode.Disposable {
 		if (!input) {
 			return;
 		}
-		await this.saveManualCheckpoint(project, session, folder, input, 'Manual context update');
+		const chat = await this.captureSelectedChat(project, folder);
+		if (chat) {
+			input.chatReference = chatReference(chat);
+		} else if (this.extensionContext.globalState.get<string>(selectedChatKey(project.id)) === 'none') {
+			input.chatReference = '';
+		}
+		await this.saveManualCheckpoint(project, session, folder, input, 'Manual context update', chat);
 	}
 
 	private async saveManualCheckpoint(
@@ -175,6 +196,7 @@ export class CheckpointController implements vscode.Disposable {
 		folder: vscode.WorkspaceFolder,
 		input: ContextInput,
 		reason: string,
+		chat?: CodexChatSnapshot,
 	): Promise<void> {
 		const { state, importantFiles } = await this.captureState(folder);
 		input.importantFiles = importantFiles;
@@ -186,7 +208,77 @@ export class CheckpointController implements vscode.Disposable {
 			void vscode.window.showWarningMessage('Checkpoint saved, but its portable export could not be written.');
 			return;
 		}
-		void vscode.window.showInformationMessage(result.created ? 'Checkpoint saved.' : 'No meaningful changes since the last checkpoint.');
+		if (chat && result.exportDirectory) {
+			await writeFile(join(result.exportDirectory, 'CHAT_CONTEXT.md'), chat.markdown, { encoding: 'utf8', mode: 0o600 });
+		}
+		const message = result.created
+			? `Checkpoint saved${chat ? ` with chat context: ${chat.chat.title}` : ''}.`
+			: 'No meaningful changes since the last checkpoint.';
+		void vscode.window.showInformationMessage(message);
+	}
+
+	private async selectChat(): Promise<void> {
+		const { project, folder } = this.requireWorkspace();
+		const selection = await this.pickChat(folder);
+		if (!selection) {
+			return;
+		}
+		await this.extensionContext.globalState.update(selectedChatKey(project.id), selection.id);
+		void vscode.window.showInformationMessage(selection.id === 'none'
+			? 'Future checkpoints will save workspace state without chat context.'
+			: `Future checkpoints will capture Codex chat: ${selection.chat?.title}`);
+	}
+
+	private async chatForSave(project: Project, folder: vscode.WorkspaceFolder): Promise<{ snapshot?: CodexChatSnapshot } | undefined> {
+		const key = selectedChatKey(project.id);
+		const selected = this.extensionContext.globalState.get<string>(key);
+		if (selected === 'none') {
+			return {};
+		}
+		const chats = await this.codexChats.listForWorkspace(folder.uri.fsPath);
+		let chat = selected ? chats.find((candidate) => candidate.id === selected) : undefined;
+		if (!chat) {
+			if (selected) {
+				void vscode.window.showWarningMessage('The previously selected Codex chat is no longer available. Select another chat for this checkpoint.');
+			}
+			const picked = await this.pickChat(folder, chats);
+			if (!picked) {
+				return undefined;
+			}
+			await this.extensionContext.globalState.update(key, picked.id);
+			chat = picked.chat;
+			if (!chat) {
+				return {};
+			}
+		}
+		return { snapshot: await this.codexChats.capture(chat) };
+	}
+
+	private async captureSelectedChat(project: Project, folder: vscode.WorkspaceFolder): Promise<CodexChatSnapshot | undefined> {
+		const selected = this.extensionContext.globalState.get<string>(selectedChatKey(project.id));
+		if (!selected || selected === 'none') {
+			return undefined;
+		}
+		const chat = (await this.codexChats.listForWorkspace(folder.uri.fsPath)).find((candidate) => candidate.id === selected);
+		return chat ? this.codexChats.capture(chat) : undefined;
+	}
+
+	private async pickChat(folder: vscode.WorkspaceFolder, knownChats?: CodexChat[]): Promise<{ id: string; chat?: CodexChat } | undefined> {
+		const chats = knownChats ?? await this.codexChats.listForWorkspace(folder.uri.fsPath);
+		const items: Array<vscode.QuickPickItem & { id: string; chat?: CodexChat }> = [
+			{ label: '$(exclude) Save workspace only', description: 'Do not capture a Codex chat', id: 'none' },
+			...chats.slice(0, 30).map((chat) => ({
+				label: `$(comment-discussion) ${chat.title}`,
+				description: chatDisplayDescription(chat),
+				id: chat.id,
+				chat,
+			})),
+		];
+		return vscode.window.showQuickPick(items, {
+			title: 'Select the Codex chat to save with this project',
+			placeHolder: chats.length ? 'Choose a recent workspace chat' : 'No matching Codex chats found',
+			matchOnDescription: true,
+		});
 	}
 
 	private async saveAutomatically(reason: string): Promise<void> {
@@ -381,12 +473,34 @@ export class CheckpointController implements vscode.Disposable {
 			await vscode.commands.executeCommand('chatgpt.newChat');
 			await delay(500);
 			await vscode.commands.executeCommand('chatgpt.addFileToThread', vscode.Uri.file(handoffPath));
+			const chatContextPath = await this.findChatContext(checkpoint);
+			if (chatContextPath) {
+				await vscode.commands.executeCommand('chatgpt.addFileToThread', vscode.Uri.file(chatContextPath));
+			}
 			this.logger.info('checkpoint.codexHandoffPrepared');
-			void vscode.window.showInformationMessage('Checkpoint context is attached to a new Codex chat. Press Send to begin.');
+			void vscode.window.showInformationMessage(
+				chatContextPath
+					? 'Checkpoint and saved chat context are attached to a new Codex chat. Press Send to begin.'
+					: 'Checkpoint context is attached to a new Codex chat. Press Send to begin.',
+			);
 		} catch (error) {
 			this.logger.error('checkpoint.codexHandoffFailed', error);
 			void vscode.window.showErrorMessage(`Could not prepare a new Codex chat: ${friendlyError(error)}`);
 		}
+	}
+
+	private async findChatContext(checkpoint: Checkpoint): Promise<string | undefined> {
+		let current: Checkpoint | undefined = checkpoint;
+		while (current) {
+			const path = join(this.exportRoot, current.projectId, current.id, 'CHAT_CONTEXT.md');
+			try {
+				await access(path);
+				return path;
+			} catch {
+				current = current.parentCheckpointId ? this.store.getCheckpoint(current.parentCheckpointId) : undefined;
+			}
+		}
+		return undefined;
 	}
 
 	private async restoreWorkspaceState(checkpoint: Checkpoint): Promise<void> {
@@ -466,6 +580,14 @@ function checkpointItem(summary: CheckpointSummary): vscode.QuickPickItem & { ch
 
 function friendlyError(error: unknown): string {
 	return error instanceof Error ? error.message : 'Unknown error';
+}
+
+function selectedChatKey(projectId: string): string {
+	return `${selectedChatKeyPrefix}${projectId}`;
+}
+
+function chatReference(snapshot: CodexChatSnapshot): string {
+	return `codex-chat:${snapshot.chat.id}:${snapshot.digest}`;
 }
 
 function delay(milliseconds: number): Promise<void> {

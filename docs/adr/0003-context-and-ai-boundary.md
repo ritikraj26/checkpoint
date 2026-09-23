@@ -11,7 +11,7 @@ Resume summaries are harmful if they fabricate decisions or hide their source. P
 
 Represent context as typed items with source, scope, timestamp, confidence, and status. Deterministic facts and manual context work offline. AI integrates only through provider-neutral summarizer/extractor interfaces and requires explicit future configuration and transmission consent.
 
-ADR 0006 later permits an explicit, document-based handoff to an installed Codex extension. It does not add automatic summarization, chat-history access, or background transmission.
+ADR 0006 later permits an explicit, document-based handoff to an installed Codex extension. ADR 0008 additionally permits explicit, filtered access to a user-selected local Codex transcript; it does not add automatic summarization or background transmission.
 
 ## Consequences
 

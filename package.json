@@ -1,0 +1,141 @@
+{
+  "name": "checkpoint",
+  "displayName": "Checkpoint",
+  "description": "Persistent engineering context for reliable project resume",
+  "version": "0.2.0",
+  "publisher": "checkpoint-local",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Checkpoint runs local Git commands and persists workspace context."
+    }
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "context",
+    "checkpoint",
+    "resume",
+    "productivity",
+    "git"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "checkpoint.save",
+        "title": "Save",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.resume",
+        "title": "Resume",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.history",
+        "title": "History",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.addResource",
+        "title": "Add Resource",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.showContext",
+        "title": "Show Context",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.diagnostics",
+        "title": "Diagnostics",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.backup",
+        "title": "Back Up Data",
+        "category": "Checkpoint"
+      },
+      {
+        "command": "checkpoint.deleteProject",
+        "title": "Delete Project Data",
+        "category": "Checkpoint"
+      }
+    ],
+    "configuration": {
+      "title": "Checkpoint",
+      "properties": {
+        "checkpoint.captureTerminalCommands": {
+          "type": "boolean",
+          "default": false,
+          "description": "Capture redacted terminal command lines when VS Code shell integration is available. Commands never leave this machine."
+        },
+        "checkpoint.maxRecentCommands": {
+          "type": "number",
+          "default": 20,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Maximum redacted terminal commands retained in a checkpoint."
+        },
+        "checkpoint.autoCheckpoint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically create checkpoints after meaningful workspace activity becomes idle."
+        },
+        "checkpoint.autoCheckpoint.idleMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 1440,
+          "description": "Minutes of inactivity after meaningful activity before creating an automatic checkpoint."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "npm run test:unit && npm run test:extension",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/unit/**/*.test.js\"",
+    "test:extension": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "@types/vscode": "1.105.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.5.0",
+    "mocha": "11.7.4",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}

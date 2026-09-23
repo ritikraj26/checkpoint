@@ -37,10 +37,14 @@ suite('portable checkpoint export', () => {
 			const directory = await new PortableCheckpointExporter(root).export(project, checkpoint);
 			const metadata = JSON.parse(readFileSync(join(directory, 'metadata.json'), 'utf8')) as { schemaVersion: number };
 			const resume = readFileSync(join(directory, 'RESUME.md'), 'utf8');
+			const codexHandoff = readFileSync(join(directory, 'CODEX_HANDOFF.md'), 'utf8');
 
 			assert.equal(metadata.schemaVersion, 1);
 			assert.match(resume, /## Goal\nShip MVP/);
 			assert.match(resume, /## Next action\nNone recorded\./);
+			assert.match(codexHandoff, /Continue this engineering task in a new conversation/);
+			assert.match(codexHandoff, /Never invent missing goals/);
+			assert.match(codexHandoff, /## Goal\nShip MVP/);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

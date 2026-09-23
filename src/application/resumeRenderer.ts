@@ -33,6 +33,25 @@ export function renderResumeMarkdown(project: Project, checkpoint: Checkpoint): 
 	return `${lines.join('\n').trim()}\n`;
 }
 
+export function renderCodexHandoffMarkdown(project: Project, checkpoint: Checkpoint): string {
+	return [
+		'# Checkpoint handoff for Codex',
+		'',
+		'Continue this engineering task in a new conversation using the saved context below.',
+		'',
+		'- Treat recorded semantic context as prior user-provided working context.',
+		'- Verify the current workspace and Git state before changing files because they may have changed since this checkpoint.',
+		'- Never invent missing goals, decisions, progress, blockers, or results.',
+		'- If a next action is recorded, start there after verification. Otherwise, explain what information is missing and propose the smallest useful next step.',
+		'- Do not search for or depend on the previous chat transcript.',
+		'',
+		'---',
+		'',
+		renderResumeMarkdown(project, checkpoint).trim(),
+		'',
+	].join('\n');
+}
+
 function section(title: string, items: ContextItem[]): string[] {
 	return ['', `## ${title}`, ...(items.length ? items.map((item) => `- ${item.content}`) : ['None recorded.'])];
 }

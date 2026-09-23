@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import { buildResumeContext } from '../domain/checkpoint';
 import { Checkpoint, ContextItem, Project, Resource } from '../domain/models';
 
-export function showResumePanel(project: Project, checkpoint: Checkpoint, onContinue: () => void): void {
+export interface ResumePanelActions {
+	onRestoreWorkspace: () => void;
+	onContinueInCodex: () => void;
+}
+
+export function showResumePanel(project: Project, checkpoint: Checkpoint, actions: ResumePanelActions): void {
 	const panel = vscode.window.createWebviewPanel(
 		'checkpoint.resume',
 		`Resume: ${project.name}`,
@@ -11,8 +16,11 @@ export function showResumePanel(project: Project, checkpoint: Checkpoint, onCont
 	);
 	panel.webview.html = resumeHtml(panel.webview, project, checkpoint);
 	panel.webview.onDidReceiveMessage((message: { type?: string }) => {
-		if (message.type === 'continue') {
-			onContinue();
+		if (message.type === 'restore') {
+			actions.onRestoreWorkspace();
+			panel.dispose();
+		} else if (message.type === 'codex') {
+			actions.onContinueInCodex();
 			panel.dispose();
 		}
 	});
@@ -34,9 +42,11 @@ header { padding-bottom: 20px; border-bottom: 1px solid var(--vscode-widget-bord
 h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 0; } .meta { color: var(--vscode-descriptionForeground); }
 section { padding: 18px 0; border-bottom: 1px solid var(--vscode-widget-border); } h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: 0; } p, ul { margin: 0; } ul { padding-left: 20px; }
 code { color: var(--vscode-textPreformat-foreground); background: var(--vscode-textCodeBlock-background); padding: 1px 4px; border-radius: 3px; }
-.actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; padding: 14px 0; background: var(--vscode-editor-background); }
+.actions { position: sticky; bottom: 0; display: flex; gap: 8px; justify-content: flex-end; padding: 14px 0; background: var(--vscode-editor-background); }
 button { border: 0; border-radius: 3px; padding: 8px 16px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); font: inherit; cursor: pointer; }
 button:hover { background: var(--vscode-button-hoverBackground); }
+.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
+.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
 </style></head><body>
 <header><h1>${escapeHtml(project.name)}</h1><div class="meta">${escapeHtml(new Date(checkpoint.createdAt).toLocaleString())}</div></header>
 ${textSection('Goal', context.objective?.content)}
@@ -51,8 +61,8 @@ ${listSection('Current blocker', context.blockers)}
 ${listSection('Relevant files', context.importantFiles)}
 ${resourceSection(context.resources)}
 ${listSection('Next action', context.nextActions)}
-<div class="actions"><button id="continue">Continue</button></div>
-<script nonce="${nonce}">const vscode = acquireVsCodeApi(); document.getElementById('continue').addEventListener('click', () => vscode.postMessage({ type: 'continue' }));</script>
+<div class="actions"><button class="secondary" id="restore">Restore workspace files</button><button id="codex">Continue in new Codex chat</button></div>
+<script nonce="${nonce}">const vscode = acquireVsCodeApi(); document.getElementById('restore').addEventListener('click', () => vscode.postMessage({ type: 'restore' })); document.getElementById('codex').addEventListener('click', () => vscode.postMessage({ type: 'codex' }));</script>
 </body></html>`;
 }
 

@@ -2,6 +2,13 @@
 
 All notable changes to Checkpoint are documented in this file.
 
+## [0.3.0] - 2026-09-23
+
+- Added an explicit **Continue in new Codex chat** resume action.
+- Added `CODEX_HANDOFF.md`, a portable, evidence-bound prompt that tells a new conversation to verify live state and never fabricate missing context.
+- Kept AI handoff user-initiated: Checkpoint opens a fresh Codex composer and attaches the handoff, but does not submit it or inspect previous chats.
+- Split resume actions into Codex continuation and deterministic workspace-file restoration.
+
 ## [0.2.0] - 2026-09-23
 
 - Added automatic checkpoints after meaningful activity and a configurable idle interval, enabled by default at 10 minutes.

@@ -1,7 +1,7 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CheckpointExporter } from '../../application/checkpointManager';
-import { renderResumeMarkdown } from '../../application/resumeRenderer';
+import { renderCodexHandoffMarkdown, renderResumeMarkdown } from '../../application/resumeRenderer';
 import { buildResumeContext } from '../../domain/checkpoint';
 import { Checkpoint, Project } from '../../domain/models';
 
@@ -31,6 +31,7 @@ export class PortableCheckpointExporter implements CheckpointExporter {
 			atomicWrite(join(directory, 'metadata.json'), `${JSON.stringify(metadata, null, 2)}\n`),
 			atomicWrite(join(directory, 'context.json'), `${JSON.stringify(buildResumeContext(project, checkpoint), null, 2)}\n`),
 			atomicWrite(join(directory, 'RESUME.md'), renderResumeMarkdown(project, checkpoint)),
+			atomicWrite(join(directory, 'CODEX_HANDOFF.md'), renderCodexHandoffMarkdown(project, checkpoint)),
 		]);
 		return directory;
 	}

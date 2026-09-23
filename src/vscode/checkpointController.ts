@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { AutoCheckpointScheduler } from '../application/autoCheckpointScheduler';
 import { CheckpointManager } from '../application/checkpointManager';
 import { CheckpointStore, CheckpointSummary } from '../application/checkpointStore';
+import { renderCodexHandoffMarkdown } from '../application/resumeRenderer';
 import { Checkpoint, Project, Resource, Session } from '../domain/models';
 import { isSensitivePath } from '../domain/redaction';
 import { GitStateCollector } from '../infrastructure/git/gitStateCollector';
@@ -340,8 +341,36 @@ export class CheckpointController implements vscode.Disposable {
 	}
 
 	private presentResume(project: Project, checkpoint: Checkpoint): void {
-		showResumePanel(project, checkpoint, () => void this.restoreWorkspaceState(checkpoint));
+		showResumePanel(project, checkpoint, {
+			onRestoreWorkspace: () => void this.restoreWorkspaceState(checkpoint),
+			onContinueInCodex: () => void this.continueInCodex(project, checkpoint),
+		});
 		this.logger.info('checkpoint.resumed');
+	}
+
+	private async continueInCodex(project: Project, checkpoint: Checkpoint): Promise<void> {
+		try {
+			const availableCommands = new Set(await vscode.commands.getCommands(true));
+			const requiredCommands = ['chatgpt.newChat', 'chatgpt.addFileToThread'];
+			if (requiredCommands.some((command) => !availableCommands.has(command))) {
+				throw new Error('The Codex extension is not installed, enabled, or ready.');
+			}
+
+			const directory = join(this.exportRoot, project.id, checkpoint.id);
+			const handoffPath = join(directory, 'CODEX_HANDOFF.md');
+			await mkdir(directory, { recursive: true });
+			await writeFile(handoffPath, renderCodexHandoffMarkdown(project, checkpoint), { encoding: 'utf8', mode: 0o600 });
+
+			await this.restoreWorkspaceState(checkpoint);
+			await vscode.commands.executeCommand('chatgpt.newChat');
+			await delay(500);
+			await vscode.commands.executeCommand('chatgpt.addFileToThread', vscode.Uri.file(handoffPath));
+			this.logger.info('checkpoint.codexHandoffPrepared');
+			void vscode.window.showInformationMessage('Checkpoint context is attached to a new Codex chat. Press Send to begin.');
+		} catch (error) {
+			this.logger.error('checkpoint.codexHandoffFailed', error);
+			void vscode.window.showErrorMessage(`Could not prepare a new Codex chat: ${friendlyError(error)}`);
+		}
 	}
 
 	private async restoreWorkspaceState(checkpoint: Checkpoint): Promise<void> {
@@ -421,4 +450,8 @@ function checkpointItem(summary: CheckpointSummary): vscode.QuickPickItem & { ch
 
 function friendlyError(error: unknown): string {
 	return error instanceof Error ? error.message : 'Unknown error';
+}
+
+function delay(milliseconds: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

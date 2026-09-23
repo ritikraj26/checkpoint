@@ -2,7 +2,7 @@
   "name": "checkpoint",
   "displayName": "Checkpoint",
   "description": "Persistent engineering context for reliable project resume",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "checkpoint-local",
   "license": "UNLICENSED",
   "engines": {

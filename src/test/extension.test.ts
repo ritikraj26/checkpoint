@@ -33,7 +33,7 @@ suite('Checkpoint extension', () => {
 			autoCheckpoint: { enabled: boolean; idleMinutes: number };
 		};
 		assert.equal(parsed.status, 'ok');
-		assert.equal(parsed.extensionVersion, '0.2.0');
+		assert.equal(parsed.extensionVersion, '0.3.0');
 		assert.equal(parsed.autoCheckpoint.enabled, true);
 		assert.equal(parsed.autoCheckpoint.idleMinutes, 10);
 	});

@@ -1,6 +1,6 @@
 # Security and Privacy
 
-Checkpoint stores engineering context locally in VS Code global storage. Version 0.3.0 has no network client, telemetry, cloud sync, or embedded AI provider implementation. Normal checkpoint creation and resume viewing do not transmit context externally.
+Checkpoint stores engineering context locally in VS Code global storage. Version 0.4.0 has no network client, telemetry, cloud sync, or embedded AI provider implementation. Normal checkpoint creation and resume viewing do not transmit context externally.
 
 **Continue in new Codex chat** is an explicit AI handoff. When selected, Checkpoint creates `CODEX_HANDOFF.md`, opens a fresh chat through the installed Codex extension, and attaches that file to the composer. The handoff contains the saved semantic context, Git metadata, file paths, terminal working directories and opted-in commands, and explicitly added resources shown in the resume view. Review it before pressing Send. Once sent, the Codex extension and the configured OpenAI service govern transmission and retention. Checkpoint never starts this flow automatically, submits the message, reads prior chats, or includes source-file contents.
 

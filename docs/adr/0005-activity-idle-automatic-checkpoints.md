@@ -17,4 +17,4 @@ Do not add periodic Git polling, file-content scanning, AI inference, or shutdow
 
 ## Consequences
 
-Projects gain useful resume history without requiring a manual action. Manual Save remains important for seeding and correcting goals, decisions, blockers, and next actions. Git runs only for an immediate first baseline or after an activity/idle boundary. A failed automatic save is recorded in logs and Diagnostics without interrupting the user; later activity can try again.
+Projects gain useful resume history without requiring a manual action. An explicit context-editing command remains available for seeding and correcting goals, decisions, blockers, and next actions. Git runs only for an immediate first baseline or after an activity/idle boundary. A failed automatic save is recorded in logs and Diagnostics without interrupting the user; later activity can try again.

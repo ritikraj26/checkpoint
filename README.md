@@ -9,8 +9,9 @@ Checkpoint is a local-first VS Code extension that captures repository and edito
 1. Open a workspace folder.
 2. Checkpoint immediately creates a facts-only baseline if this project has no history.
 3. Work normally. After a text edit/save, active-editor change, completed terminal command, added resource, or workspace change, Checkpoint silently saves once the workspace has been idle for 10 minutes.
-4. Occasionally run **Checkpoint: Save** to seed or correct the objective, task, progress, decisions, experiments, discoveries, blocker, or next action.
-5. Later, run **Checkpoint: Resume** or **Checkpoint: History**. Review the captured context, then select **Continue in new Codex chat**. Checkpoint opens a fresh chat and attaches a generated handoff; press Send to let Codex continue from it. Use **Restore workspace files** when you only want to reopen the captured editors.
+4. Run **Checkpoint: Save** whenever you want an immediate snapshot. It captures the current state without opening a form.
+5. Optionally run **Checkpoint: Update Context** when you want to record or correct the objective, task, progress, decisions, experiments, discoveries, blocker, or next action.
+6. Later, run **Checkpoint: Resume** or **Checkpoint: History**. Review the captured context, then select **Continue in new Codex chat**. Checkpoint opens a fresh chat and attaches a generated handoff; press Send to let Codex continue from it. Use **Restore workspace files** when you only want to reopen the captured editors.
 
 Resume works across recorded projects. Choosing a project in another workspace reopens that folder first, then presents its checkpoint.
 
@@ -36,16 +37,17 @@ Requirements: VS Code 1.105 or newer. Development and packaging require Node.js 
 npm ci
 npm test
 npm run package
-npx @vscode/vsce package --out checkpoint-0.3.0.vsix
+npx @vscode/vsce package --out checkpoint-0.4.0.vsix
 ```
 
-In VS Code, open the Extensions view, choose the **...** menu, select **Install from VSIX...**, and select `checkpoint-0.3.0.vsix`.
+In VS Code, open the Extensions view, choose the **...** menu, select **Install from VSIX...**, and select `checkpoint-0.4.0.vsix`.
 
 For development, run `npm run compile`, then use the **Run Extension** launch configuration.
 
 ## Commands
 
-- **Checkpoint: Save**: manually seed or correct context while capturing current state
+- **Checkpoint: Save**: immediately capture the current state without a form
+- **Checkpoint: Update Context**: optionally record or correct semantic context while capturing current state
 - **Checkpoint: Resume**: select a project/checkpoint, then restore its files or prepare a new Codex chat from its handoff
 - **Checkpoint: History**: inspect prior checkpoints
 - **Checkpoint: Add Resource**: associate a URL or local path with the current project

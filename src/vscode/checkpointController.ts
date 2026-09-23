@@ -3,7 +3,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { AutoCheckpointScheduler } from '../application/autoCheckpointScheduler';
-import { CheckpointManager } from '../application/checkpointManager';
+import { CheckpointManager, ContextInput } from '../application/checkpointManager';
 import { CheckpointStore, CheckpointSummary } from '../application/checkpointStore';
 import { renderCodexHandoffMarkdown } from '../application/resumeRenderer';
 import { Checkpoint, Project, Resource, Session } from '../domain/models';
@@ -69,6 +69,7 @@ export class CheckpointController implements vscode.Disposable {
 
 	private registerCommands(): void {
 		this.register('checkpoint.save', () => this.save());
+		this.register('checkpoint.updateContext', () => this.updateContext());
 		this.register('checkpoint.resume', () => this.resume());
 		this.register('checkpoint.history', () => this.history());
 		this.register('checkpoint.addResource', () => this.addResource());
@@ -155,14 +156,29 @@ export class CheckpointController implements vscode.Disposable {
 
 	private async save(): Promise<void> {
 		const { project, session, folder } = this.requireWorkspace();
+		await this.saveManualCheckpoint(project, session, folder, {}, 'Manual checkpoint');
+	}
+
+	private async updateContext(): Promise<void> {
+		const { project, session, folder } = this.requireWorkspace();
 		const previous = this.store.getLatestCheckpoint(project.id);
 		const input = await collectContextInput(previous);
 		if (!input) {
 			return;
 		}
+		await this.saveManualCheckpoint(project, session, folder, input, 'Manual context update');
+	}
+
+	private async saveManualCheckpoint(
+		project: Project,
+		session: Session,
+		folder: vscode.WorkspaceFolder,
+		input: ContextInput,
+		reason: string,
+	): Promise<void> {
 		const { state, importantFiles } = await this.captureState(folder);
 		input.importantFiles = importantFiles;
-		const result = await this.manager.save(project, session, state, input, 'manual', 'Manual checkpoint');
+		const result = await this.manager.save(project, session, state, input, 'manual', reason);
 		const changedFileCount = state.gitState.changedFiles.length;
 		this.logger.info('checkpoint.saved', { created: result.created, changedFiles: changedFileCount });
 		if (result.exportError) {

@@ -10,7 +10,7 @@ interface FormMessage {
 export async function collectContextInput(previous?: Checkpoint): Promise<ContextInput | undefined> {
 	const panel = vscode.window.createWebviewPanel(
 		'checkpoint.context',
-		'Save Checkpoint',
+		'Update Checkpoint Context',
 		vscode.ViewColumn.Active,
 		{ enableScripts: true },
 	);
@@ -72,7 +72,7 @@ function formHtml(webview: vscode.Webview, previous?: Checkpoint): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-<title>Save Checkpoint</title>
+<title>Update Checkpoint Context</title>
 <style>
 body { max-width: 760px; margin: 0 auto; padding: 28px 24px 48px; color: var(--vscode-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
 h1 { margin: 0 0 24px; font-size: 24px; font-weight: 600; letter-spacing: 0; }
@@ -91,7 +91,7 @@ button.secondary { color: var(--vscode-button-secondaryForeground); background: 
 </style>
 </head>
 <body>
-<h1>Save checkpoint</h1>
+<h1>Update checkpoint context</h1>
 <form id="context-form">
 <div class="grid">
 <div class="field wide"><label for="objective">Objective</label><input id="objective" name="objective" maxlength="4000" value="${value('objective')}"></div>
@@ -103,7 +103,7 @@ button.secondary { color: var(--vscode-button-secondaryForeground); background: 
 <div class="field"><label for="discoveries">Discoveries</label><textarea id="discoveries" name="discoveries" maxlength="4000">${values('discovery')}</textarea></div>
 <div class="field wide"><label for="experiments">What was tried</label><textarea id="experiments" name="experiments" maxlength="4000">${values('experiment')}</textarea></div>
 </div>
-<div class="actions"><button class="secondary" type="button" id="cancel">Cancel</button><button type="submit">Save checkpoint</button></div>
+<div class="actions"><button class="secondary" type="button" id="cancel">Cancel</button><button type="submit">Save context and checkpoint</button></div>
 </form>
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();

@@ -2,6 +2,12 @@
 
 All notable changes to Checkpoint are documented in this file.
 
+## [0.4.0] - 2026-09-23
+
+- Changed **Checkpoint: Save** into an immediate, no-form snapshot of the current Git, editor, terminal, resource, and important-file state.
+- Added **Checkpoint: Update Context** for the optional objective, task, progress, decisions, experiments, discoveries, blocker, and next-action form.
+- Continued carrying any previously known semantic context into manual and automatic snapshots.
+
 ## [0.3.0] - 2026-09-23
 
 - Added an explicit **Continue in new Codex chat** resume action.

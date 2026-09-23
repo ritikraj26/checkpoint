@@ -39,7 +39,7 @@ Derived now: `GitState`, `WorkspaceState`, and the compact `ResumeContext`. Even
 3. Observe text edits/saves, active-editor changes, terminal command completion, resource additions, and workspace changes. Restart one idle timer on each meaningful activity signal; do not poll Git.
 4. After the configured idle interval, collect Git state, active/open files, terminal cwd, and opted-in recent commands through the same capture path used by manual saves.
 5. Carry forward previously known semantic context, replace deterministic important-file evidence, and save an immutable `auto` checkpoint transactionally. Fingerprints deduplicate equivalent evidence regardless of checkpoint identity, time, type, reason, or collection order.
-6. Manual Save remains available to seed or correct semantic context; automatic capture never fabricates it.
+6. Manual Save creates an immediate facts snapshot without prompting. The separate Update Context command records or corrects semantic context; automatic capture never fabricates it.
 7. Render resume state and write `metadata.json`, `context.json`, `RESUME.md`, and `CODEX_HANDOFF.md` as a portable export.
 8. On explicit request, open a fresh Codex chat and attach `CODEX_HANDOFF.md`. Checkpoint does not read old conversations or submit the new message.
 
